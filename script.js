@@ -89,6 +89,9 @@ function init() {
     var Settings = function() {
         this.paused = false;
         this.gravDistance = 3.0;
+        this.mass = 10.0;
+        this.speed = 10.0;
+        this.friction = 0.1;
         this.show_help = showHelp;
     };
 
@@ -102,7 +105,15 @@ function init() {
     gui.add(settings, 'gravDistance', 0.0, 6.0).onChange(function(value) {
         velUniforms.gravDist.value = Math.pow(10.0, value);
     });
-
+    gui.add(settings, 'mass', 0.1, 100.0).onChange(function(value) {
+        velUniforms.mass.value = value; // Math.pow(10.0, value);
+    });
+    gui.add(settings, 'friction', 0.0, 1.0).onChange(function(value) {
+        velUniforms.friction.value = value; // Math.pow(10.0, value);
+    });
+    gui.add(settings, 'speed', 0.1, 100.0).onChange(function(value) {
+        posUniforms.speed.value = value; // Math.pow(10.0, value);
+    });
     gui.add(settings, 'show_help');
 
 
@@ -172,8 +183,10 @@ function init() {
         velTex: {type: "t", value: velTexture[0]},
         posTex: {type: "t", value: posTexture[0]},
         targetPos: {type: "v3", value: new THREE.Vector3(0.7, 0.5, 0.5)},
-        time: 	{ type: "f", value: 1.0 },
-        gravDist: 	{ type: "f", value: 1000.0 }
+        deltaTime: 	{ type: "f", value: 1.0 },
+        gravDist: 	{ type: "f", value: 1000.0 },
+        mass: 	{ type: "f", value: 10.0 },
+        friction: 	{ type: "f", value: 0.1 }
     };
 
 
@@ -202,7 +215,8 @@ function init() {
     posUniforms = {
         posTex: {type: "t", value: posTexture[0]},
         velTex: {type: "t", value: velTexture[0]},
-        time: 	{ type: "f", value: 1.0 }
+        deltaTime: 	{ type: "f", value: 1.0 },
+        speed: 	{ type: "f", value: 1.0 }
     };
 
 
@@ -228,7 +242,7 @@ function init() {
     var randFrag = $('#randFrag').text();
 
     var randUniforms = {
-        time: 	{ type: "f", value: 1.0 }
+        deltaTime: 	{ type: "f", value: 1.0 }
     };
 
 
@@ -282,7 +296,7 @@ function init() {
 
     dispUniforms = {
         posTex: {type: "t", value: posTexture[0]},
-        time: 	{ type: "f", value: 1.0 },
+        deltaTime: 	{ type: "f", value: 1.0 },
         texSize: 	{ type: "f", value: texSize }
 
     };
@@ -312,7 +326,9 @@ function init() {
     var particles = new THREE.Geometry();
 
 
-    for (var i = 0; i < 1000000; i++) {
+    var particleCount = texSize * texSize;
+
+    for (var i = 0; i < particleCount; i++) {
         particles.vertices.push(new THREE.Vector3((i % texSize)/texSize, Math.floor(i/texSize)/texSize , 0)); //   i/texSize
     }
 //    particles.vertices.push(new THREE.Vector3(1, 1, 0));
@@ -358,10 +374,17 @@ function init() {
 
 var buffer = 0;
 var rand = true;
+var lastTime = clock.getElapsedTime();
 
 function render() {
-    //velUniforms.time.value = clock.getElapsedTime();
+    var timeNow = clock.getElapsedTime();
+    var deltaTime = timeNow - lastTime;
+    lastTime = timeNow;
 
+    velUniforms.deltaTime.value = deltaTime;
+    posUniforms.deltaTime.value = deltaTime;
+
+    
     //controls.update();
 //    console.log(scene, camera, rtTexture);
 
@@ -424,6 +447,7 @@ function render() {
 
 //    renderer.render(scene, camera);
     stats.update();
+    // setTimeout(render, 1000/60);
     window.requestAnimationFrame(render);
 }
 
@@ -542,36 +566,6 @@ function onWindowResize( event ) {
 function showHelp() {
     console.log("clicked show Help");
     $("#help").fadeIn();
-}
-
-function loadItem(name) {
-    console.log("models/"+name+".js");
-    loader.load("models/"+name+".js" ,  function (geometry, materials) {
-//        var material = new THREE.MeshPhongMaterial();
-        //var faceMaterial = new THREE.MeshFaceMaterial( materials );
-
-        var mesh;
-        var texture = THREE.ImageUtils.loadTexture("textures/cache/"+name+".png",undefined,function(){
-            console.log("textureLoaded");
-            var tex = THREE.ImageUtils.loadTexture("textures/"+name+".png",undefined,function(){
-                mesh.material.map = tex;
-            });
-
-
-        });
-        mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({map:texture}));
-        mesh.scale.set(10, 10, 10);
-        scene.add(mesh);
-        console.log("IN HERE!")
-    });
-}
-
-function updateLine() {
-    console.log('lineUpdated');
-
-    line.geometry.vertices = lineVerticies;
-    line.geometry.verticesNeedUpdate = true;
-    console.log(line);
 }
 
 //var lineVerticies;
